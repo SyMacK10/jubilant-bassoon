@@ -90,6 +90,20 @@ def score_technology(tech: str) -> dict:
             trigger_types.append("migration_signal")
         break
 
+    # --- EOL discussion (thin, qualitative) ---
+    # Hacker News and Reddit are pooled. The floor is high relative to the
+    # measured yield, so this rarely fires — deliberately. The point of these
+    # sources is the verbatim quotes handed to the digest, not the count.
+    discussion = 0
+    for src in ("hackernews", "reddit"):
+        for sig in get_signals(tech, source=src):
+            discussion += int(sig.get("value") or 0)
+            break
+    if discussion >= THRESHOLDS["discussion_min_posts"]:
+        score += SCORING["discussion_eol_chatter"]
+        breakdown["eol_discussion"] = discussion
+        trigger_types.append("eol_discussion")
+
     insert_scored_signal(
         technology=tech,
         total_score=score,

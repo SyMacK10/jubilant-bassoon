@@ -15,7 +15,8 @@ import traceback
 import schedule
 
 from analysis import digest, scorer
-from collectors import endoflife, github, nvd, stackoverflow
+from collectors import (endoflife, github, hackernews, nvd, reddit,
+                        stackoverflow)
 from storage.db import init_db
 
 COLLECTORS = [
@@ -23,6 +24,8 @@ COLLECTORS = [
     ("stackoverflow", stackoverflow),
     ("github", github),
     ("nvd", nvd),
+    ("hackernews", hackernews),
+    ("reddit", reddit),  # no-op until Reddit credentials are configured
 ]
 
 

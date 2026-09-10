@@ -65,8 +65,16 @@ def load() -> tuple[pd.DataFrame, dict, list]:
             "CVEs": (cves.get("CRITICAL", 0) + cves.get("HIGH", 0)) or None,
             "Sources": len(sources),
         })
+        quotes = []
+        for src in ("hackernews", "reddit"):
+            for sig in db.get_signals(tech, source=src):
+                for q in (sig.get("metadata") or {}).get("quotes", []):
+                    quotes.append({"source": src, "text": q.get("text"),
+                                   "url": q.get("url")})
+                break
+
         details[tech] = {"breakdown": breakdown, "upcoming": upcoming,
-                         "sources": sources,
+                         "sources": sources, "quotes": quotes,
                          "signals": db.get_signals(tech)}
 
     digests = []
@@ -140,6 +148,15 @@ def main() -> None:
                     ]), hide_index=True, use_container_width=True)
                 else:
                     st.caption("No upcoming EOL data for this technology.")
+
+            quotes = d.get("quotes") or []
+            if quotes:
+                st.markdown("**What practitioners are saying**")
+                for q in quotes:
+                    st.markdown(f"> {q['text']}")
+                    st.caption(f"{q['source']} · {q['url']}")
+                st.caption("A thin sample of public discussion — context, "
+                           "not evidence of a trend.")
 
             st.markdown("**Raw signals (latest run)**")
             st.dataframe(pd.DataFrame([

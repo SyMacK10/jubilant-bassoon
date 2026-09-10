@@ -7,6 +7,9 @@ API_KEYS = {
     "stackoverflow": os.getenv("STACKOVERFLOW_KEY"),
     "github": os.getenv("GITHUB_TOKEN"),
     "nvd": os.getenv("NVD_KEY"),
+    # Optional. The Reddit collector stays dormant until these are present.
+    "reddit_client_id": os.getenv("REDDIT_CLIENT_ID"),
+    "reddit_client_secret": os.getenv("REDDIT_CLIENT_SECRET"),
     "anthropic": os.getenv("ANTHROPIC_KEY"),
 }
 
@@ -56,6 +59,12 @@ def nvd_keyword(tech: str) -> str:
     return CATALOG.get(tech, {}).get("nvd", tech)
 
 
+def discussion_tokens(tech: str) -> list[str]:
+    """Words that identify this technology in free-text discussion."""
+    entry = CATALOG.get(tech, {})
+    return sorted({tech, entry.get("so", tech)})
+
+
 def cpe_tokens(tech: str) -> list[str]:
     """Tokens that must appear in a CVE's CPE list for it to count as a match."""
     return CATALOG.get(tech, {}).get("cpe", [tech])
@@ -74,6 +83,11 @@ THRESHOLDS = {
     # for every technology. Migration chatter is scored on a rise instead.
     "github_spike_pct": 25,
     "github_min_prior_volume": 100,
+    # Discussion forums are a thin source: measured volume is a handful of
+    # genuinely EOL-related posts per technology per six months. The floor is
+    # set so the weight effectively never fires on one or two posts — the
+    # value of this source is the verbatim quotes, not the count.
+    "discussion_min_posts": 3,
 }
 
 SCORING = {
@@ -83,4 +97,19 @@ SCORING = {
     "github_migration_keyword": 10,
     "critical_cve": 25,
     "high_cve": 15,
+    "discussion_eol_chatter": 5,
 }
+
+# Support-lifecycle vocabulary. Deliberately excludes bare "migrate"/"upgrade":
+# those matched schema-migration tools and COBOL rewrites, not EOL pressure.
+EOL_DISCUSSION_KEYWORDS = [
+    "end of life", "end-of-life", "eol", "out of support",
+    "no longer supported", "unsupported", "extended support",
+    "security updates", "legacy version",
+]
+
+# Subreddits searched when Reddit credentials are configured.
+REDDIT_SUBREDDITS = [
+    "devops", "sysadmin", "linuxadmin", "java", "PostgreSQL",
+    "php", "node", "docker", "kubernetes", "dataengineering",
+]
