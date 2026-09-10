@@ -75,9 +75,10 @@ def load() -> tuple[pd.DataFrame, dict, list]:
             "SELECT * FROM digests ORDER BY generated_at DESC LIMIT 10")]
 
     frame = pd.DataFrame(rows)
-    # Nullable ints so blank cells render empty rather than the string "None".
+    # Rendered as text: Streamlit's NumberColumn prints a missing value as the
+    # literal string "None", which reads as data rather than absence.
     for col in ("EOL Days", "CVEs"):
-        frame[col] = pd.array(frame[col], dtype="Int64")
+        frame[col] = ["—" if pd.isna(v) else str(int(v)) for v in frame[col]]
     return frame, details, digests
 
 
@@ -114,9 +115,9 @@ def main() -> None:
                 "Score": st.column_config.ProgressColumn(
                     "Score", min_value=0,
                     max_value=float(max(df["Score"].max(), 1)), format="%.0f"),
-                "EOL Days": st.column_config.NumberColumn(
+                "EOL Days": st.column_config.TextColumn(
                     "EOL Days", help="Days until the nearest upcoming EOL"),
-                "CVEs": st.column_config.NumberColumn(
+                "CVEs": st.column_config.TextColumn(
                     "CVEs", help="Critical + high CVEs this week"),
             },
         )
