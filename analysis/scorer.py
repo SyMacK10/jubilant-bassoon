@@ -61,24 +61,32 @@ def score_technology(tech: str) -> dict:
         break  # most recent signal only
 
     # --- CVEs ---
+    # Scored once per severity tier present, not once per CVE. A per-CVE tally
+    # made vulnerability count dominate everything else: java alone published
+    # 10 critical and 16 high CVEs in a week, which would contribute 490 points
+    # against a 30 point EOL signal.
     cve_counts = {"CRITICAL": 0, "HIGH": 0}
     for sig in get_signals(tech, source="nvd"):
         severity = (sig.get("metadata") or {}).get("severity")
-        if severity == "CRITICAL":
-            score += SCORING["critical_cve"]
-            cve_counts["CRITICAL"] += 1
-        elif severity == "HIGH":
-            score += SCORING["high_cve"]
-            cve_counts["HIGH"] += 1
+        if severity in cve_counts:
+            cve_counts[severity] += 1
+    if cve_counts["CRITICAL"]:
+        score += SCORING["critical_cve"]
+    if cve_counts["HIGH"]:
+        score += SCORING["high_cve"]
     if cve_counts["CRITICAL"] or cve_counts["HIGH"]:
         breakdown["cves"] = cve_counts
         trigger_types.append("cve")
 
-    # --- Migration chatter ---
+    # --- Migration chatter (rising, volume-gated) ---
     for sig in get_signals(tech, source="github"):
-        if (sig.get("value") or 0) > THRESHOLDS["github_mentions"]:
+        delta = sig.get("delta_pct") or 0
+        prior = (sig.get("metadata") or {}).get("prior_window", 0)
+        if (delta >= THRESHOLDS["github_spike_pct"]
+                and prior >= THRESHOLDS["github_min_prior_volume"]):
             score += SCORING["github_migration_keyword"]
-            breakdown["gh_mentions"] = sig["value"]
+            breakdown["gh_chatter"] = {"delta_pct": round(delta, 1),
+                                       "current": sig.get("value"), "prior": prior}
             trigger_types.append("migration_signal")
         break
 
