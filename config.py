@@ -10,18 +10,51 @@ API_KEYS = {
     "anthropic": os.getenv("ANTHROPIC_KEY"),
 }
 
-# Technologies OpenLogic actively supports — filters all signals.
-# NOTE: these strings are currently used as Stack Overflow tags,
-# endoflife.date slugs, and NVD keywords simultaneously. They will not
-# all match. Refactor into a per-source alias map once the empirical
-# mismatches are known (see handoff section 8).
-OPENLOGIC_CATALOG = [
-    "java", "python", "php", "ruby", "nodejs",
-    "postgresql", "mysql", "mongodb",
-    "kafka", "elasticsearch", "hadoop",
-    "spring", "tomcat", "jboss", "wildfly",
-    "centos", "rhel", "ubuntu",
-]
+# Technologies OpenLogic actively supports, keyed by canonical name.
+#
+# Per-source aliases exist because one string cannot serve all three APIs
+# (handoff section 8). Verified empirically against the live APIs:
+#   - "eol":  endoflife.date product slugs. A list, because some products are
+#             split across distributions there. Empty list = no EOL data exists
+#             for that technology; it still collects other signal types.
+#   - "so":   Stack Overflow tag.
+#   - "nvd":  NVD keywordSearch term.
+CATALOG = {
+    "java":          {"eol": ["oracle-jdk", "redhat-build-of-openjdk"], "so": "java",          "nvd": "java"},
+    "python":        {"eol": ["python"],        "so": "python",        "nvd": "python"},
+    "php":           {"eol": ["php"],           "so": "php",           "nvd": "php"},
+    "ruby":          {"eol": ["ruby"],          "so": "ruby",          "nvd": "ruby"},
+    "nodejs":        {"eol": ["nodejs"],        "so": "node.js",       "nvd": "node.js"},
+    "postgresql":    {"eol": ["postgresql"],    "so": "postgresql",    "nvd": "postgresql"},
+    "mysql":         {"eol": ["mysql"],         "so": "mysql",         "nvd": "mysql"},
+    "mongodb":       {"eol": ["mongodb"],       "so": "mongodb",       "nvd": "mongodb"},
+    "kafka":         {"eol": ["kafka"],         "so": "apache-kafka",  "nvd": "apache kafka"},
+    "elasticsearch": {"eol": ["elasticsearch"], "so": "elasticsearch", "nvd": "elasticsearch"},
+    "hadoop":        {"eol": ["hadoop"],        "so": "hadoop",        "nvd": "apache hadoop"},
+    "spring":        {"eol": ["spring-framework"], "so": "spring",     "nvd": "spring framework"},
+    "tomcat":        {"eol": ["tomcat"],        "so": "tomcat",        "nvd": "apache tomcat"},
+    "jboss":         {"eol": ["jboss"],         "so": "jboss",         "nvd": "jboss"},
+    "wildfly":       {"eol": [],                "so": "wildfly",       "nvd": "wildfly"},
+    "centos":        {"eol": ["centos"],        "so": "centos",        "nvd": "centos"},
+    "rhel":          {"eol": ["rhel"],          "so": "rhel",          "nvd": "red hat enterprise linux"},
+    "ubuntu":        {"eol": ["ubuntu"],        "so": "ubuntu",        "nvd": "ubuntu"},
+}
+
+# Canonical names. Kept as a flat list so collectors and the scorer can iterate.
+OPENLOGIC_CATALOG = list(CATALOG)
+
+
+def eol_slugs(tech: str) -> list[str]:
+    return CATALOG.get(tech, {}).get("eol", [])
+
+
+def so_tag(tech: str) -> str:
+    return CATALOG.get(tech, {}).get("so", tech)
+
+
+def nvd_keyword(tech: str) -> str:
+    return CATALOG.get(tech, {}).get("nvd", tech)
+
 
 SCORING = {
     "eol_within_90_days": 30,
