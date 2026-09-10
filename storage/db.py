@@ -149,12 +149,18 @@ def get_eol_events(technology: str) -> list[dict]:
 
 
 def get_top_scored_signals(limit: int = 10) -> list[dict]:
-    """Highest-scoring technologies from the most recent scoring run."""
+    """Highest-scoring technologies, one row per technology.
+
+    Takes each technology's most recent scoring row rather than everything
+    inside a time window: several scoring runs can land in the same window,
+    which previously returned the same technology repeatedly.
+    """
     with connect() as conn:
         return _rows(conn.execute(
-            "SELECT * FROM scored_signals"
-            " WHERE scored_at >= datetime((SELECT MAX(scored_at) FROM scored_signals),"
-            f"                            '-{RUN_WINDOW_HOURS} hours')"
-            " ORDER BY total_score DESC, technology ASC LIMIT ?",
+            "SELECT s.* FROM scored_signals s"
+            " JOIN (SELECT technology, MAX(id) AS latest_id FROM scored_signals"
+            "       GROUP BY technology) newest"
+            "   ON s.id = newest.latest_id"
+            " ORDER BY s.total_score DESC, s.technology ASC LIMIT ?",
             (limit,),
         ), json_fields=("score_breakdown",))
