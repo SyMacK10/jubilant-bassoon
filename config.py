@@ -56,6 +56,18 @@ def nvd_keyword(tech: str) -> str:
     return CATALOG.get(tech, {}).get("nvd", tech)
 
 
+# Thresholds that gate whether a weight is awarded at all.
+#
+# so_min_prior_volume exists because Stack Overflow tag volumes are now low
+# enough that percentage deltas are noise: a tag moving 2 -> 4 questions is a
+# "+100% spike". Requiring a floor on the prior window suppresses that. Tune
+# this alongside the weights.
+THRESHOLDS = {
+    "so_spike_pct": 30,
+    "so_min_prior_volume": 10,
+    "github_mentions": 10,
+}
+
 SCORING = {
     "eol_within_90_days": 30,
     "eol_within_180_days": 20,
