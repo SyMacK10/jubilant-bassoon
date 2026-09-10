@@ -58,6 +58,14 @@ def run_all() -> dict:
 
 
 def main() -> int:
+    # Redirected stdout is block-buffered by default, so a scheduled run shows
+    # nothing in its log until it finishes. Line buffering makes progress
+    # tailable while the run is in flight.
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except (AttributeError, OSError):
+        pass
+
     parser = argparse.ArgumentParser(description="OpenLogic Trend Radar")
     parser.add_argument("--serve", action="store_true",
                         help="stay running and repeat every Monday at 07:00")

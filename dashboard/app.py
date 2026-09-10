@@ -74,7 +74,11 @@ def load() -> tuple[pd.DataFrame, dict, list]:
         digests = [dict(r) for r in conn.execute(
             "SELECT * FROM digests ORDER BY generated_at DESC LIMIT 10")]
 
-    return pd.DataFrame(rows), details, digests
+    frame = pd.DataFrame(rows)
+    # Nullable ints so blank cells render empty rather than the string "None".
+    for col in ("EOL Days", "CVEs"):
+        frame[col] = pd.array(frame[col], dtype="Int64")
+    return frame, details, digests
 
 
 def main() -> None:
